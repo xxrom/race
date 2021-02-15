@@ -29,16 +29,18 @@ class Car:
       self.x -= Car.turnSpeed
 
   def draw(self):
-    rect(self.surf, self.color, (self.x, self.y, self.width, self.height))
+    self.carRect = rect(self.surf, self.color,
+                        (self.x, self.y, self.width, self.height))
 
 
 class Wall:
 
-  def __init__(self, surface, color, car):
+  def __init__(self, surface, color, car, score):
     self.surf = surface
     self.color = color
     self.x = 0
     self.y = 0
+    self.score = score
 
     # Wall
     self.speed = 6
@@ -49,7 +51,10 @@ class Wall:
     self.gateWidth = 2 * car.width
     self.initGate()
 
+    self.score.reset()
+
   def initGate(self):
+    self.score.add()
     self.y = -self.height
     self.gateX = random.randint(
         0, (self.width // self.gateWidth) - 1) * self.gateWidth
@@ -58,14 +63,44 @@ class Wall:
     self.y += self.speed
 
     if self.y > self.surf.get_height():
+
       self.initGate()
 
   def draw(self):
     # Wall
-    rect(self.surf, self.color, (self.x, self.y, self.width, self.height))
+    self.wallRect = rect(self.surf, self.color,
+                         (self.x, self.y, self.width, self.height))
+
     # Gate
-    rect(self.surf, (255, 255, 255),
-         (self.x + self.gateX, self.y, self.gateWidth, self.height))
+    self.gateRect = rect(
+        self.surf, (255, 255, 255),
+        (self.x + self.gateX, self.y, self.gateWidth, self.height))
+
+
+class Score:
+
+  def __init__(self, serface, color, position):
+    self.serface = serface
+    self.color = color
+    self.position = position
+
+    self.score = 0
+
+    self.font = pg.font.SysFont('arial', 30)
+    self.renderScore()
+
+  def reset(self):
+    self.score = 0
+
+  def renderScore(self):
+    self.scoreSurface = self.font.render(str(self.score), True, (220, 0, 0))
+
+  def add(self):
+    self.score += 1
+    self.renderScore()
+
+  def draw(self):
+    self.serface.blit(self.scoreSurface, (0, 0))
 
 
 class App:
@@ -80,7 +115,8 @@ class App:
     self.color = {
         'car': pg.Color(255, 0, 0),
         'background': pg.Color(200, 200, 200),
-        'wall': pg.Color(100, 100, 100)
+        'wall': pg.Color(100, 100, 100),
+        'score': pg.Color(250, 0, 0),
     }
 
     # initialize the pygame module
@@ -94,7 +130,8 @@ class App:
     self.screen.fill(self.color['background'])
 
     self.car = Car(self.screen, self.color['car'])
-    self.wall = Wall(self.screen, self.color['wall'], self.car)
+    self.score = Score(self.screen, self.color['score'], (0, 0, 30, 30))
+    self.wall = Wall(self.screen, self.color['wall'], self.car, self.score)
 
   def handleEvents(self):
     # event handling, gets all event from the event queue
@@ -121,19 +158,27 @@ class App:
 
     self.wall.draw()
     self.car.draw()
+    self.score.draw()
 
   def displayUpdate(self):
     pg.display.update()
 
     self.fps_clock.tick(self.fps)
 
+  def gameUpdate(self):
+    # Check collision!
+
+    isCarInGate = self.car.carRect.colliderect(self.wall.gateRect)
+    print(isCarInGate)
+
   def run(self):
     # main loop
     while 1:
-
       self.handleEvents()
 
       self.draw()
+
+      self.gameUpdate()
 
       self.displayUpdate()
 
