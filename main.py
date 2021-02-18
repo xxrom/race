@@ -9,13 +9,11 @@ class Car:
   width = 80
   height = 80
 
-  turnSpeed = 14
+  turnSpeed = 16
 
-  def __init__(self, surface, color):
-    self.surface = surface
+  def __init__(self, screen, color):
+    self.screen = screen
     self.color = color
-    self.x = 0
-    self.y = 0
 
     self.height = Car.height
     self.width = Car.width
@@ -24,19 +22,19 @@ class Car:
     self.updateRects()
 
   def reset(self):
-    self.x = ((self.surface.get_width() / 2) // Car.width) * Car.width
-    self.y = self.surface.get_height() - Car.height
+    self.x = ((self.screen.get_width() / 2) // Car.width) * Car.width
+    self.y = self.screen.get_height() - Car.height
 
   def right(self):
-    if self.x < self.surface.get_width() - Car.width:
+    if self.x <= self.screen.get_width() - Car.width - Car.turnSpeed:
       self.x += Car.turnSpeed
 
   def left(self):
-    if self.x > 0:
+    if self.x >= Car.turnSpeed:
       self.x -= Car.turnSpeed
 
   def updateRects(self):
-    self.carRect = pg.draw.rect(self.surface, self.color,
+    self.carRect = pg.draw.rect(self.screen, self.color,
                                 (self.x, self.y, self.width, self.height))
 
   def draw(self):
@@ -45,8 +43,8 @@ class Car:
 
 class Wall:
 
-  def __init__(self, surface, color, car, score):
-    self.surface = surface
+  def __init__(self, screen, color, car, score):
+    self.screen = screen
     self.wallColor = color
     self.gateColor = (255, 255, 255)
     self.x = 0
@@ -55,11 +53,11 @@ class Wall:
 
     # Wall Speed
     self.initSpeed = 6
-    self.speedIncrease = 0.5
+    self.speedIncrease = 0.01
     self.speed = self.initSpeed
 
     self.carWidth = car.width
-    self.width = self.surface.get_width()
+    self.width = self.screen.get_width()
     self.height = self.carWidth
 
     # Gate
@@ -71,7 +69,7 @@ class Wall:
 
   def getNextWall(self):
     self.y = -self.height
-    self.speed += self.speedIncrease
+    self.speed *= (1 + self.speedIncrease)
 
     self.initRects()
 
@@ -121,18 +119,18 @@ class Wall:
     self.y += self.speed
     self.updateRects()
 
-    if self.y > self.surface.get_height():
+    if self.y > self.screen.get_height():
       self.score.add()
       self.getNextWall()
 
   def draw(self):
-    self.surface.blit(self.wallSurface, (0, self.y))
+    self.screen.blit(self.wallSurface, (0, self.y))
 
 
 class Score:
 
-  def __init__(self, serface, color, position):
-    self.serface = serface
+  def __init__(self, screen, color, position):
+    self.screen = screen
     self.color = color
     self.position = position
 
@@ -151,7 +149,7 @@ class Score:
     self.renderScore()
 
   def draw(self):
-    self.serface.blit(self.scoreSurface, (0, 0))
+    self.screen.blit(self.scoreSurface, (0, 0))
 
 
 class App:
@@ -172,10 +170,11 @@ class App:
     self.isCrashed = False
 
     self.color = {
-        'car': pg.Color(255, 0, 0),
+        'car': pg.Color(0, 150, 0),
         'background': pg.Color(200, 200, 200),
-        'wall': pg.Color(100, 100, 100),
+        'wall': pg.Color(50, 50, 100),
         'score': pg.Color(250, 0, 0),
+        'ahead': pg.Color(100, 100, 100, 100),
         'gameOver': pg.Color(200, 50, 0)
     }
 
@@ -189,6 +188,13 @@ class App:
     self.car = Car(self.screen, self.color['car'])
     self.score = Score(self.screen, self.color['score'], (0, 0, 30, 30))
     self.wall = Wall(self.screen, self.color['wall'], self.car, self.score)
+
+    # For AI
+    self.ai = {}
+    self.ai['carAheadRect'] = Rect(self.car.x, self.car.y, self.car.width,
+                                   -self.HEIGHT)
+    self.ai['isAheadClean'] = True
+    self.ai['position'] = 0
 
   def handleEvents(self):
     # event handling, gets all event from the event queue
@@ -210,12 +216,18 @@ class App:
     if keys[pg.K_RIGHT]:
       self.car.right()
 
+  def aiDraw(self):
+    pg.draw.rect(self.screen, self.color['ahead'], self.ai['carAheadRect'], 1)
+
   def draw(self):
     self.screen.fill(self.color['background'])
 
     self.wall.draw()
     self.car.draw()
     self.score.draw()
+
+    # Helpful info for AI
+    self.aiDraw()
 
     if self.isCrashed:
       # GAME OVER text
@@ -235,8 +247,19 @@ class App:
 
   def checkCollisions(self):
     # Check collision!
-    self.isCrashed = self.car.carRect.collidelist(
-        [self.wall.leftWallRect, self.wall.rightWallRect]) != -1
+    blocks = [self.wall.leftWallRect, self.wall.rightWallRect]
+    self.isCrashed = self.car.carRect.collidelist(blocks) != -1
+
+    # CALCS for AI
+
+    # Check collision ahead car
+    self.ai['carAheadRect'] = Rect(self.car.x, 0, self.car.width, self.HEIGHT)
+    self.ai['isAheadClean'] = self.ai['carAheadRect'].collidelist(blocks) == -1
+
+    self.ai['position'] = (self.car.x) / (self.WIDTH)
+    print(self.car.x)
+
+    print('ahead %s %f' % (str(self.ai['isAheadClean']), self.ai['position']))
 
   def gameOver(self):
     # Pause game
@@ -247,10 +270,16 @@ class App:
     self.score.reset()
     self.car.reset()
 
+  def handleAI(self):
+    print('handle AI')
+    # if self.ai['position'] > 0.5:
+    # self.car.left()
+
   def run(self):
     # main loop
     while 1:
       self.handleEvents()
+      self.handleAI()
 
       self.checkCollisions()
       self.draw()
