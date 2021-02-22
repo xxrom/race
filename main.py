@@ -4,6 +4,8 @@ import sys
 
 Rect = pg.Rect
 
+from ai import AI
+
 
 class Car:
   width = 80
@@ -191,6 +193,8 @@ class App:
 
     # For AI
     self.ai = {}
+
+    self.ai['nn'] = AI()
     self.ai['carAheadRect'] = Rect(self.car.x, self.car.y, self.car.width,
                                    -self.HEIGHT)
     self.ai['isAheadClean'] = True
@@ -277,7 +281,7 @@ class App:
 
   def run(self):
     # main loop
-    while 1:
+    while 0:
       self.handleEvents()
       self.handleAI()
 
