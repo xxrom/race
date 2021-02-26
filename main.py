@@ -213,8 +213,8 @@ class App:
     # Init AIs
     self.AI = []
     for i in range(self.numberOfAIs):
-      W1 = [[1,1, 0], [1,1, 1]]
-      W2 = [[ 0.5, 0.5], [1, 0.5], [0, 0.5]]
+      W1 = [[0,0, 0], [1,0, 1]]
+      W2 = [[ 0.0, 0.1], [0, 0.9], [0, 0.5]]
       weights = [W1, W2]
 
       layers = [2,3,2]
@@ -292,6 +292,15 @@ class App:
     print('ahead %s %f' % (str(self.ai['isAheadClean']), self.ai['position']))
 
   def gameOver(self):
+    print('current score %d' % self.score.score)
+    # Save current score
+    self.prevAI = {
+        'score': self.score.score,
+        'AI': self.AI
+        }
+
+    self.AI[0].nextMutation()
+
     # Pause game
     pg.time.delay(1000)
 
@@ -304,11 +313,26 @@ class App:
     print('handle AI')
     # if self.ai['position'] > 0.5:
     # self.car.left()
-    self.predict[0]
+    moreThenToTrue = 0.5
+
+    for i in range(self.numberOfAIs):
+      self.predict[i]= self.AI[i].predict([self.ai['isAheadClean'], self.ai['position']]).data.tolist()[0][0]
+      print(self.predict)
+      print(self.predict[i][0])
+
+      # 0 - left
+      if self.predict[i][0] > moreThenToTrue:
+        print('AI turn left')
+        self.car.left()
+      # 1 - right
+      if self.predict[i][1] > moreThenToTrue:
+        print('AI turn right')
+        self.car.right()
+
 
   def run(self):
     # main loop
-    while 0:
+    while 1:
       self.handleEvents()
       self.handleAI()
 

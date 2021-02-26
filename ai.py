@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import random
 
 
 class Neural_Network(nn.Module):
@@ -71,26 +72,60 @@ class Neural_Network(nn.Module):
 class AI:
 
   def __init__(self, weights, layers):
+    self.weights = weights
+
     # 2 x 3 (2 input to 3 hidden nodes)
     # self.W1 = torch.tensor(([[1, 1,0.4], [1,1,0.1]]), dtype=torch.float)
-    self.W1 = torch.tensor(([weights[0]]), dtype=torch.float)
+    self.W1 = torch.tensor(([self.weights[0]]), dtype=torch.float)
 
     # 3 x 1 (3 hidden to 1 output)
     # self.W2 = torch.tensor(([[0.1], [1], [1]]), dtype=torch.float)
-    self.W2 = torch.tensor(([weights[1]]), dtype=torch.float)
+    self.W2 = torch.tensor(([self.weights[1]]), dtype=torch.float)
 
     self.NN = Neural_Network([self.W1, self.W2], layers)
 
 
   def setWeights(self, weights):
-    self.W1 = weights[0]
-    self.W2= weights[1]
+    self.W1 = torch.tensor(([self.weights[0]]), dtype=torch.float)
+    self.W2 = torch.tensor(([self.weights[1]]), dtype=torch.float)
 
     self.NN = Neural_Network([self.W1, self.W2])
 
+  def getWeights(self):
+    return self.weights
+
+  def getNextWeight(self, weight):
+    oldWeight = weight
+
+    change = 0.1
+
+    isPlusChange = True if random.random() > 0.5  else False
+
+    delta = weight * change * random.random()
+
+    if isPlusChange and (weight + delta) <= 1.0:
+      weight += delta
+    elif (weight - delta) >= 0.0:
+      weight -= delta
+
+    print('oldW %f => newW %f' % (oldWeight, weight))
+
+    return weight
+
+
+  def nextMutation(self):
+    print(self.weights)
+    print(len(self.weights))
+
+    for i in range(len(self.weights)):
+      for j in range(len(self.weights[i])):
+        for k in range(len(self.weights[i][j])):
+          self.weights[i][j][k] = self.getNextWeight(self.weights[i][j][k])
+
+    self.setWeights(self.weights)
+
   def predict(self, X):
     self.X = torch.tensor(([X]), dtype=torch.float)
-
     predict = self.NN.forward(self.X)
 
     print('Prediction %s' % str(predict))
