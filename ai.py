@@ -55,6 +55,7 @@ class Neural_Network(nn.Module):
     # forward + backward pass for training
     o = self.forward(X)
     self.backward(X, y, o)
+    self.xPredicted = o
 
   def saveWeights(self, model):
     # we will use the PyTorch internal storage functions
@@ -64,7 +65,7 @@ class Neural_Network(nn.Module):
 
   def predict(self):
     print("Predicted data based on trained weights: ")
-    print("Input (scaled): \n" + str(xPredicted))
+    print("Input (scaled): %s \n" % (str(self.xPredicted)))
 
 
 class AI:
@@ -89,8 +90,6 @@ class AI:
     # 1 X 2 tensor
     xPredicted = torch.tensor(([4, 8]), dtype=torch.float)
 
-    # print(X.size())
-    # print(y.size())
 
     # scale units [0:1]
     X_max, _ = torch.max(X, 0)
@@ -105,4 +104,5 @@ class AI:
             str(torch.mean(
                 (y - NN(X))**2).detach().item()))  # mean sum squared loss
       NN.train(X, y)
+
     NN.predict()
