@@ -1,6 +1,7 @@
 import pygame as pg
 import random
 import sys
+import os
 
 Rect = pg.Rect
 
@@ -157,6 +158,9 @@ class Score:
 class App:
 
   def __init__(self):
+    # position game window in the second screen
+    os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (-400,10)
+
     # initialize the pygame module
     pg.init()
 
@@ -184,7 +188,7 @@ class App:
     self.gameOverText = 'GAME OVER!'
 
     # create a surface on screen that has the size of 240 x 180
-    self.screen = pg.display.set_mode((self.WIDTH, self.HEIGHT))
+    self.screen = pg.display.set_mode((self.WIDTH, self.HEIGHT), display=1)
     self.screen.fill(self.color['background'])
 
     self.car = Car(self.screen, self.color['car'])
@@ -194,11 +198,33 @@ class App:
     # For AI
     self.ai = {}
 
-    self.ai['nn'] = AI()
     self.ai['carAheadRect'] = Rect(self.car.x, self.car.y, self.car.width,
                                    -self.HEIGHT)
     self.ai['isAheadClean'] = True
     self.ai['position'] = 0
+
+    # init AI and NN
+    self.numberOfAIs = 1
+
+    # TODO : 
+    # 1. init AIs in list and predictions
+    # 2. control car by one AI
+
+    # Init AIs
+    self.AI = []
+    for i in range(self.numberOfAIs):
+      W1 = [[1,1, 0], [1,1, 1]]
+      W2 = [[ 0.5, 0.5], [1, 0.5], [0, 0.5]]
+      weights = [W1, W2]
+
+      layers = [2,3,2]
+
+      self.AI.append(AI(weights, layers))
+
+    # AIs predictions
+    self.predict = []
+    for i in range(self.numberOfAIs):
+      self.predict.append(self.AI[i].predict([1,0.1]))
 
   def handleEvents(self):
     # event handling, gets all event from the event queue
@@ -278,6 +304,7 @@ class App:
     print('handle AI')
     # if self.ai['position'] > 0.5:
     # self.car.left()
+    self.predict[0]
 
   def run(self):
     # main loop

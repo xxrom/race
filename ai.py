@@ -70,39 +70,29 @@ class Neural_Network(nn.Module):
 
 class AI:
 
-  def __init__(self):
+  def __init__(self, weights, layers):
     # 2 x 3 (2 input to 3 hidden nodes)
-    self.W1 = torch.tensor(([[1, 1,0.4], [1,1,0.1]]), dtype=torch.float)
+    # self.W1 = torch.tensor(([[1, 1,0.4], [1,1,0.1]]), dtype=torch.float)
+    self.W1 = torch.tensor(([weights[0]]), dtype=torch.float)
+
     # 3 x 1 (3 hidden to 1 output)
-    self.W2 = torch.tensor(([[0.1], [1], [1]]), dtype=torch.float)
+    # self.W2 = torch.tensor(([[0.1], [1], [1]]), dtype=torch.float)
+    self.W2 = torch.tensor(([weights[1]]), dtype=torch.float)
 
-    NN = Neural_Network([self.W1, self.W2])
-    # NN = Neural_Network()
-
-    self.X = torch.tensor(([[1,1]]), dtype=torch.float)
-
-    print(NN.forward(self.X))
-
-    # 3 X 2 tensor
-    # X = torch.tensor(([2, 9], [1, 5], [3, 6]), dtype=torch.float)
-    # 3 X 1 tensor
-    # y = torch.tensor(([92], [100], [89]), dtype=torch.float)
-    # 1 X 2 tensor
-    # xPredicted = torch.tensor(([4, 8]), dtype=torch.float)
+    self.NN = Neural_Network([self.W1, self.W2], layers)
 
 
-    # scale units [0:1]
-    # X_max, _ = torch.max(X, 0)
-    # xPredicted_max, _ = torch.max(xPredicted, 0)
+  def setWeights(self, weights):
+    self.W1 = weights[0]
+    self.W2= weights[1]
 
-    # X = torch.div(X, X_max)
-    # xPredicted = torch.div(xPredicted, xPredicted_max)
-    # y = y / 100  # max test score is 100
+    self.NN = Neural_Network([self.W1, self.W2])
 
-    # for i in range(1000):  # trains the NN 1,000 times
-      # print("#" + str(i) + " Loss: " +
-            # str(torch.mean(
-                # (y - NN(X))**2).detach().item()))  # mean sum squared loss
-      # NN.train(X, y)
+  def predict(self, X):
+    self.X = torch.tensor(([X]), dtype=torch.float)
 
-    # NN.predict()
+    predict = self.NN.forward(self.X)
+
+    print('Prediction %s' % str(predict))
+
+    return predict
