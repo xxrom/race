@@ -157,6 +157,9 @@ class Score:
     self.score += 1
     self.renderScore()
 
+  def setText(self, text):
+    self.score = text
+
   def draw(self):
     self.screen.blit(self.scoreSurface, self.position)
 
@@ -175,8 +178,10 @@ class App:
     self.HEIGHT = 680
     self.WIDTH = 400
 
-    self.fps = 120
+    self.fps = 60
     self.fps_clock = pg.time.Clock()
+
+    self.gameOverCounter = 0
 
     colors = [
         pg.Color(0, 150, 0, 125), 
@@ -271,12 +276,29 @@ class App:
       r1 = random.random()
       r2 = random.random()
 
-      W1 = [[r0,r1, r2], [r2,r1, r0]]
-      W2 = [[r0, r2], [r1, r2], [r1, r1]]
+      layers = [2,10,2]
+
+      W1 = []
+      for i in range(layers[0]):
+        w = []
+        for j in range(layers[1]):
+          w.append(random.random())
+
+        W1.append(w)
+
+      W2 = []
+      for i in range(layers[1]):
+        w = []
+        for j in range(layers[2]):
+          w.append(random.random())
+
+        W2.append(w)
+
+      # W1 = [[r0,r1, r2], [r2,r1, r0]]
+      # W2 = [[r0, r2], [r1, r2], [r1, r1]]
 
       weights = [W1, W2]
 
-      layers = [2,3,2]
 
       self.AI.append(AI(weights, layers))
 
@@ -362,6 +384,8 @@ class App:
       self.position[i] = (self.cars[i].x) / (self.WIDTH)
 
   def gameOver(self):
+    self.gameOverCounter += 1
+
     maxScore = 0
     maxIndex = 0
 
@@ -395,7 +419,7 @@ class App:
       self.cars[i].reset()
 
   def handleAI(self):
-    moreThenToTrue = 0.7
+    moreThenToTrue = 0.5
 
     for i in range(0, self.numberOfAIs):
       if self.isCrashed[i] == True:
