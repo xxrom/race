@@ -23,7 +23,9 @@ class Neural_Network(nn.Module):
       # 3 X 1 tensor
       self.W2 = torch.randn(self.hiddenSize, self.outputSize)
 
-    print(self.W1, self.W2)
+    print('>>>>>>>>>>>>>>>>>>>>>>>')
+    print('NEW NN weights', self.W1, self.W2)
+    print('<<<<<<<<<<<<<<<<<<')
 
   def forward(self, X):
     # 3 X 3 ".dot" does not broadcast in PyTorch
@@ -68,10 +70,16 @@ class Neural_Network(nn.Module):
     print("Predicted data based on trained weights: ")
     print("Input (scaled): %s \n" % (str(self.xPredicted)))
 
+  def setWeights(self, weights):
+    self.W1 = weights[0]
+    self.W2 = weights[1]
+
+    print('setNew weights', self.W1, self.W2)
 
 class AI:
 
   def __init__(self, weights, layers):
+    self.layers = layers
     self.weights = weights
 
     # 2 x 3 (2 input to 3 hidden nodes)
@@ -86,10 +94,12 @@ class AI:
 
 
   def setWeights(self, weights):
-    self.W1 = torch.tensor(([self.weights[0]]), dtype=torch.float)
-    self.W2 = torch.tensor(([self.weights[1]]), dtype=torch.float)
+    self.weights = weights
 
-    self.NN = Neural_Network([self.W1, self.W2])
+    self.W1 = torch.tensor(([weights[0]]), dtype=torch.float)
+    self.W2 = torch.tensor(([weights[1]]), dtype=torch.float)
+
+    self.NN.setWeights([self.W1, self.W2])
 
   def getWeights(self):
     return self.weights
@@ -97,37 +107,38 @@ class AI:
   def getNextWeight(self, weight):
     oldWeight = weight
 
-    change = 0.1
+    change = 0.2
 
     isPlusChange = True if random.random() > 0.5  else False
 
-    delta = weight * change * random.random()
+    delta = change * random.random()
 
     if isPlusChange and (weight + delta) <= 1.0:
       weight += delta
     elif (weight - delta) >= 0.0:
       weight -= delta
 
-    print('oldW %f => newW %f' % (oldWeight, weight))
+    # print('oldW %f => newW %f' % (oldWeight, weight))
 
     return weight
 
 
   def nextMutation(self):
-    print(self.weights)
-    print(len(self.weights))
+    weights = self.weights
+    # print('OLD weights', weights)
 
-    for i in range(len(self.weights)):
-      for j in range(len(self.weights[i])):
-        for k in range(len(self.weights[i][j])):
-          self.weights[i][j][k] = self.getNextWeight(self.weights[i][j][k])
+    for i in range(len(weights)):
+      for j in range(len(weights[i])):
+        for k in range(len(weights[i][j])):
+          weights[i][j][k] = self.getNextWeight(self.weights[i][j][k])
 
-    self.setWeights(self.weights)
+    print('New Weights', weights)
+    return weights
+    # self.setWeights(self.weights)
 
   def predict(self, X):
     self.X = torch.tensor(([X]), dtype=torch.float)
     predict = self.NN.forward(self.X)
 
-    print('Prediction %s' % str(predict))
-
+    # print('Prediction %s' % str(predict)) 
     return predict
