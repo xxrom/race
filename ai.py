@@ -3,38 +3,58 @@ import torch.nn as nn
 import random
 
 
-class Neural_Network(nn.Module):
+# Neural_Network
+class AI(nn.Module):
 
-  def __init__(self, weights=None, layers=[2,3,1]):
-    super(Neural_Network, self).__init__()
+  def __init__(self, weights=None, layers=[2,3,3,3,3]):
+    super(AI, self).__init__()
+
+    self.chanceToAllNew = 0.1
+    self.skipMutation = 0.8
+    self.changeInterval = 0.5
+
+    self.weights = weights.copy()
+    self.layers = layers.copy()
+
     # parameters
     # TODO: parameters can be parameterized instead of declaring them here
     self.inputSize = layers[0]
-    self.hiddenSize = layers[1]
-    self.outputSize = layers[2]
+    self.hiddenSize0 = layers[1]
+    self.hiddenSize1 = layers[2]
+    self.hiddenSize2 = layers[3]
+    self.outputSize = layers[4]
 
     # weights
     if weights is not None:
-      self.W1 = weights[0]
-      self.W2 = weights[1]
+      self.W0 = torch.tensor(([weights[0]]), dtype=torch.float)
+      self.W1 = torch.tensor(([weights[1]]), dtype=torch.float)
+      self.W2 = torch.tensor(([weights[2]]), dtype=torch.float)
+      self.W3 = torch.tensor(([weights[3]]), dtype=torch.float)
     else:
-      # 2 X 3 tensor
-      self.W1 = torch.randn(self.inputSize, self.hiddenSize)
-      # 3 X 1 tensor
-      self.W2 = torch.randn(self.hiddenSize, self.outputSize)
+      self.W0 = torch.randn(self.inputSize, self.hiddenSize0)
+      self.W1 = torch.randn(self.hiddenSize0, self.hiddenSize1)
+      self.W2 = torch.randn(self.hiddenSize1, self.outputSize2)
+      self.W3 = torch.randn(self.hiddenSize2, self.outputSize)
 
-    print('>>>>>>>>>>>>>>>>>>>>>>>')
-    print('NEW NN weights', self.W1, self.W2)
-    print('<<<<<<<<<<<<<<<<<<')
+    # print('>>>>>>>>>>>>>>>>>>>>>>>')
+    # print('NEW NN weights', self.W0, self.W1, self.W2)
+    # print('<<<<<<<<<<<<<<<<<<')
 
   def forward(self, X):
     # 3 X 3 ".dot" does not broadcast in PyTorch
-    self.z = torch.matmul(X, self.W1)
+    self.z1 = torch.matmul(X, self.W0)
     # activation function
-    self.z2 = self.sigmoid(self.z)
-    self.z3 = torch.matmul(self.z2, self.W2)
+    self.z2 = self.sigmoid(self.z1)
+
+    self.z3 = torch.matmul(self.z2, self.W1)
+    self.z4 = self.sigmoid(self.z3)
+
+    self.z5 = torch.matmul(self.z4, self.W2)
+    self.z6 = self.sigmoid(self.z5)
+
+    self.z7 = torch.matmul(self.z6, self.W3)
     # final activation function
-    o = self.sigmoid(self.z3)
+    o = self.sigmoid(self.z7)
 
     return o
 
@@ -60,85 +80,70 @@ class Neural_Network(nn.Module):
     self.backward(X, y, o)
     # self.xPredicted = o
 
-  def saveWeights(self, model):
+  # def saveWeights(self, model):
     # we will use the PyTorch internal storage functions
-    torch.save(model, "NN")
+    # torch.save(model, "NN")
     # you can reload model with all the weights and so forth with:
     # torch.load("NN")
 
-  def predict(self):
-    print("Predicted data based on trained weights: ")
-    print("Input (scaled): %s \n" % (str(self.xPredicted)))
-
   def setWeights(self, weights):
-    self.W1 = weights[0]
-    self.W2 = weights[1]
+    self.weights = weights[:]
 
-    print('setNew weights', self.W1, self.W2)
-
-class AI:
-
-  def __init__(self, weights, layers):
-    self.layers = layers
-    self.weights = weights
-
-    # 2 x 3 (2 input to 3 hidden nodes)
-    # self.W1 = torch.tensor(([[1, 1,0.4], [1,1,0.1]]), dtype=torch.float)
-    self.W1 = torch.tensor(([self.weights[0]]), dtype=torch.float)
-
-    # 3 x 1 (3 hidden to 1 output)
-    # self.W2 = torch.tensor(([[0.1], [1], [1]]), dtype=torch.float)
-    self.W2 = torch.tensor(([self.weights[1]]), dtype=torch.float)
-
-    self.NN = Neural_Network([self.W1, self.W2], layers)
-
-
-  def setWeights(self, weights):
-    self.weights = weights
-
-    self.W1 = torch.tensor(([weights[0]]), dtype=torch.float)
-    self.W2 = torch.tensor(([weights[1]]), dtype=torch.float)
-
-    self.NN.setWeights([self.W1, self.W2])
-
-  def getWeights(self):
-    return self.weights
+    self.W0 = torch.tensor(([self.weights[0]]), dtype=torch.float)
+    self.W1 = torch.tensor(([self.weights[1]]), dtype=torch.float)
+    self.W2 = torch.tensor(([self.weights[2]]), dtype=torch.float)
+    self.W3 = torch.tensor(([self.weights[3]]), dtype=torch.float)
 
   def getNextWeight(self, weight):
-    oldWeight = weight
-
-    change = 0.2
+    # skit change
+    if random.random() < self.skipMutation:
+      return weight
 
     isPlusChange = True if random.random() > 0.5  else False
+    # print('isPlug %s' % str(isPlusChange))
 
-    delta = change * random.random()
+    delta = self.changeInterval * random.random()
+    # print('delta', delta)
 
-    if isPlusChange and (weight + delta) <= 1.0:
-      weight += delta
+    if random.random() > 0.5 and (weight + delta) <= 1.0:
+      # print('Plus + delta', weight, weight + delta)
+      return weight + delta
     elif (weight - delta) >= 0.0:
-      weight -= delta
+      # print('Minus - delta',weight,  weight - delta)
+      return weight - delta
 
-    # print('oldW %f => newW %f' % (oldWeight, weight))
-
-    return weight
-
+    return random.random()
 
   def nextMutation(self):
-    weights = self.weights
-    # print('OLD weights', weights)
+    allNew = False
+    if random.random() <= self.chanceToAllNew:
+      allNew = True
 
-    for i in range(len(weights)):
-      for j in range(len(weights[i])):
-        for k in range(len(weights[i][j])):
-          weights[i][j][k] = self.getNextWeight(self.weights[i][j][k])
+    weights = [] 
 
-    print('New Weights', weights)
+    for i in range(len(self.weights)):
+
+      wi = []
+      for j in range(len(self.weights[i])):
+
+        wj = []
+        for k in range(len(self.weights[i][j])):
+          if allNew == False:
+            wj.append(self.getNextWeight(self.weights[i][j][k]))
+          else:
+            wj.append(random.random())
+          # print('Old w = %f => %f' % (self.weights[i][j][k], wj[len(wj) -1 ]))
+
+        wi.append(wj)
+      weights.append(wi)
+
     return weights
-    # self.setWeights(self.weights)
 
-  def predict(self, X):
-    self.X = torch.tensor(([X]), dtype=torch.float)
-    predict = self.NN.forward(self.X)
+  def predictByX(self, X):
+    # print('pred', X)
+    self.X = torch.tensor((X), dtype=torch.float)
+    self.predict = self.forward(self.X)
 
-    # print('Prediction %s' % str(predict)) 
-    return predict
+    # print('Prediction %s' % str(self.predict)) 
+    return self.predict.data.tolist()[0][0]
+
