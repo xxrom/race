@@ -3,10 +3,10 @@ import random
 import sys
 import os
 
-from ai import AI
 from car import Car
 from wall import Wall
 from score import Score
+from evolution import Evolution
 
 Rect = pg.Rect
 
@@ -23,7 +23,8 @@ class App:
     # load and set the logo
     pg.display.set_caption("Car")
 
-    self.numberOfAIs = 5
+    self.numberOfCars = 5
+    self.Evolution = Evolution(self.numberOfCars)
 
     self.HEIGHT = 600
     self.WIDTH = 400
@@ -42,8 +43,8 @@ class App:
         pg.Color(250, 0, 150, 125),
     ]
 
-    if len(colors) < self.numberOfAIs:
-      for i in range(self.numberOfAIs - len(colors)):
+    if len(colors) < self.numberOfCars:
+      for i in range(self.numberOfCars - len(colors)):
         colors.append(
             pg.Color(int(random.random() * 255), int(random.random() * 255),
                      int(random.random() * 255), 125))
@@ -68,9 +69,9 @@ class App:
     self.gameOverScore = Score(self.screen, self.color['gameOver'], (300, 20))
 
     # init AI and NN
-    self.initAI()
+    self.Evolution.init()
+
     self.initCars()
-    self.initCarPostions()
     self.initScores()
 
     self.wall = Wall(self.screen, self.color['wall'], self.cars[0], self.scores)
@@ -78,7 +79,7 @@ class App:
   def initScores(self):
     self.scores = []
 
-    for i in range(self.numberOfAIs):
+    for i in range(self.numberOfCars):
       self.scores.append(Score(self.screen, self.color['car'][i], (10, i * 8)))
 
   def initCarPostions(self):
@@ -86,7 +87,7 @@ class App:
     self.isAheadClean = []
     self.position = []
 
-    for i in range(self.numberOfAIs):
+    for i in range(self.numberOfCars):
       self.carAheadRect.append(
           Rect(self.cars[i].x, self.cars[i].y, self.cars[i].width,
                -self.HEIGHT))
@@ -97,58 +98,11 @@ class App:
     self.cars = []
     self.isCrashed = []
 
-    for i in range(self.numberOfAIs):
+    for i in range(self.numberOfCars):
       self.cars.append(Car(self.screen, self.color['car'][i]))
       self.isCrashed.append(False)
 
-  def initAI(self):
-    self.prevMaxIndex = 0
-
-    self.AI = []
-    for i in range(self.numberOfAIs):
-      layers = [2, 3, 3, 3, 3]
-      delta = 1.0
-
-      W0 = []
-      for i in range(layers[0]):
-        w = []
-        for j in range(layers[1]):
-          w.append(random.random() * delta)
-
-        W0.append(w)
-
-      W1 = []
-      for i in range(layers[1]):
-        w = []
-        for j in range(layers[2]):
-          w.append(random.random() * delta)
-
-        W1.append(w)
-
-      W2 = []
-      for i in range(layers[2]):
-        w = []
-        for j in range(layers[3]):
-          w.append(random.random() * delta)
-
-        W2.append(w)
-
-      W3 = []
-      for i in range(layers[3]):
-        w = []
-        for j in range(layers[4]):
-          w.append(random.random() * delta)
-
-        W3.append(w)
-
-      weights = [W0, W1, W2, W3]
-
-      self.AI.append(AI(weights, layers))
-
-    # AIs predictions
-    self.predicts = []
-    for i in range(self.numberOfAIs):
-      self.predicts.append(self.AI[i].predictByX([1, 0.1]))
+    self.initCarPostions()
 
   def setNextScores(self):
     for i in range(len(self.scores)):
@@ -176,7 +130,7 @@ class App:
     # self.cars[0].right()
 
   def aiDraw(self):
-    for i in range(self.numberOfAIs):
+    for i in range(self.numberOfCars):
       pg.draw.rect(self.screen, self.color['ahead'], self.carAheadRect[i], 1)
 
   def draw(self):
@@ -184,7 +138,7 @@ class App:
 
     self.wall.draw()
 
-    for i in range(self.numberOfAIs):
+    for i in range(self.numberOfCars):
       if self.isCrashed[i] == True:
         continue
 
@@ -219,7 +173,7 @@ class App:
     # Check collision!
     blocks = [self.wall.leftWallRect, self.wall.rightWallRect]
 
-    for i in range(self.numberOfAIs):
+    for i in range(self.numberOfCars):
       if self.isCrashed[i] == True:
         continue
 
@@ -235,38 +189,16 @@ class App:
     self.gameOverCounter += 1
     self.gameOverScore.setText(self.gameOverCounter)
 
-    maxScore = 0
-    maxIndex = 0
-
-    for i in range(self.numberOfAIs):
-      if self.scores[i].score >= maxScore:
-        maxScore = self.scores[i].score
-        maxIndex = i
-
     print('>>>>>>>>>>>>>>>>>>>>>')
-    print('>>>>>>>>>>>>>>>>>>>>>')
-    print('GAME OVER score %d' % maxScore)
-    print('>>>>>>>>>>>>>>>>>>>>>')
+    print('GAME OVER')
     print('>>>>>>>>>>>>>>>>>>>>>')
 
-    # TODO: stop car until all cars will be crashed
-    print('Parent weights', self.AI[maxIndex].weights)
-
-    for i in range(0, self.numberOfAIs):
-      if i == maxIndex or i == self.prevMaxIndex:
-        continue
-
-      if self.scores[maxIndex].score - self.scores[i].score < 1.0:
-        self.AI[i].setWeights(self.AI[i].nextMutation())
-      else:
-        self.AI[i].setWeights(self.AI[maxIndex].nextMutation())
-
-    self.prevMaxIndex = maxIndex
+    self.Evolution.mutatePopulation(self.scores)
 
     # Reset all params
     self.wall.reset()
 
-    for i in range(self.numberOfAIs):
+    for i in range(self.numberOfCars):
       self.isCrashed[i] = False
       self.scores[i].reset()
       self.cars[i].reset()
@@ -274,22 +206,22 @@ class App:
   def handleAI(self):
     moreThenToTrue = 0.7
 
-    for i in range(0, self.numberOfAIs):
+    for i in range(0, self.numberOfCars):
       if self.isCrashed[i] == True:
         continue
 
       X = [int(self.isAheadClean[i]), self.position[i]]
-      self.predicts[i] = self.AI[i].predictByX(X)
+      predict = self.Evolution.getChildPrediciton(i, X)
 
       left = False
       # 0 - left
-      if self.predicts[i][0] > moreThenToTrue:
+      if predict[0] > moreThenToTrue:
         # print('AI turn left')
         left = True
 
       right = False
       # 1 - right
-      if self.predicts[i][1] > moreThenToTrue:
+      if predict[1] > moreThenToTrue:
         # print('AI turn right')
         right = True
 
