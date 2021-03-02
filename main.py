@@ -4,196 +4,18 @@ import sys
 import os
 
 from ai import AI
+from car import Car
+from wall import Wall
+from score import Score
 
 Rect = pg.Rect
 
-class Car:
-  width = 80
-  height = 80
-
-  turnSpeed = 40
-
-  def __init__(self, screen, color):
-    self.screen = screen
-    self.color = color
-
-    self.height = Car.height
-    self.width = Car.width
-
-    self.carSurf = pg.Surface((self.width, self.height), pg.SRCALPHA)
-
-    self.reset()
-    self.updateRects()
-
-
-  def reset(self):
-    self.x = ((self.screen.get_width() / 2) // Car.width) * Car.width
-    self.y = self.screen.get_height() - Car.height
-
-  def right(self):
-    if self.x <= self.screen.get_width() - Car.width - Car.turnSpeed:
-      self.x += Car.turnSpeed
-
-  def left(self):
-    if self.x >= Car.turnSpeed:
-      self.x -= Car.turnSpeed
-
-  def updateRects(self):
-    # Car draw
-    self.screen.blit(self.carSurf, (self.x, self.y))
-    self.carSurf.fill(self.color)
-
-    # Car rect for checking collisions
-    self.carRect = Rect(self.x, self.y, self.width, self.height)
-    self.carCenter = self.x + (self.width // 2)
-
-  def draw(self):
-    self.updateRects()
-
-class Wall:
-
-  def __init__(self, screen, color, car, scores):
-    self.screen = screen
-    self.wallColor = color
-    self.gateColor = (255, 255, 255, 185)
-    self.x = 0
-    self.y = 0
-    self.scores = scores
-
-    self.step = 0
-    self.leftWallSizesList = [1,3,1,3,1,3,2,1,2,3]
-    self.prevLeftWallSize = 0
-
-    # Wall Speed
-    self.initSpeed = 12
-    self.speedIncrease = 0.00
-    self.speed = self.initSpeed
-
-    self.carWidth = car.width
-    self.width = self.screen.get_width()
-    self.height = self.carWidth
-
-    # Gate
-    self.gateSizeInCarWidth = 2
-    self.gateWidth = self.gateSizeInCarWidth * self.carWidth
-    self.reset()
-
-    for i in range(len(self.scores)):
-      self.scores[i].reset()
-
-  def getNextWall(self):
-    self.step += 1
-    self.y = -self.height
-    self.speed *= (1 + self.speedIncrease)
-
-    self.initRects()
-
-    self.updateRects()
-
-  def reset(self):
-    self.speed = self.initSpeed
-    # self.step = int(random.random()* 2)
-    self.step = 0 
-    self.getNextWall()
-
-  def updateRects(self):
-    self.leftWallRect.y = self.y
-    self.rightWallRect.y = self.y
-
-  def getWallSize(self, sizeInCarWidth):
-    if self.step < len(self.leftWallSizesList):
-      return self.leftWallSizesList[self.step]
-
-    size = random.randint(0, int(sizeInCarWidth - self.gateSizeInCarWidth))
-
-    if size == 2:
-      size -= 1
-
-    if size == self.prevLeftWallSize:
-      return self.getWallSize(sizeInCarWidth)
-
-    return size
-
-  def initRects(self):
-    sizeInCarWidth = (self.width // self.carWidth)
-    leftWallSize = self.getWallSize(sizeInCarWidth)
-    self.prevLeftWallSize = leftWallSize
-    self.leftWallWidth = leftWallSize * self.carWidth
-
-    # Left wall
-    self.leftWallSurf = pg.Surface((self.leftWallWidth, self.height), pg.SRCALPHA)
-    self.leftWallSurf.fill(self.wallColor)
-    self.leftWallRect = Rect(self.x, self.y, self.leftWallWidth, self.height)
-
-    # Gate
-    self.gateSurf = pg.Surface((self.gateWidth, self.height), pg.SRCALPHA)
-    self.gateSurf.fill(self.gateColor)
-
-    # Right wall
-    rightWallX = self.leftWallWidth + self.gateWidth
-    self.rightWallWidth = self.width - rightWallX
-
-    self.rightWallSurf = pg.Surface((self.rightWallWidth, self.height),pg.SRCALPHA )
-    self.rightWallSurf.fill(self.wallColor)
-    self.rightWallRect = Rect(self.leftWallWidth + self.gateWidth, self.y,
-                              self.rightWallWidth, self.height)
-
-    # Wall full width surface
-    self.wallSurface = pg.Surface((self.width, self.height))
-
-    # Blit all parts on full Wall surface
-    self.wallSurface.blit(self.leftWallSurf, (0, 0))
-    self.wallSurface.blit(self.gateSurf, (self.leftWallWidth, 0))
-    self.wallSurface.blit(self.rightWallSurf,
-                          (self.leftWallWidth + self.gateWidth, 0))
-
-    # Gate center 
-    self.gateCenter = self.leftWallWidth + (self.gateWidth // 2)
-
-  def tick(self, setNextScores):
-    self.y += self.speed
-    self.updateRects()
-
-    if self.y > self.screen.get_height():
-      setNextScores()
-      self.getNextWall()
-
-  def draw(self):
-    self.screen.blit(self.wallSurface, (0, self.y))
-
-class Score:
-
-  def __init__(self, screen, color, position):
-    self.screen = screen
-    self.color = color
-    self.position = position
-
-    self.font = pg.font.SysFont(name=None, size=16)
-    self.reset()
-
-  def reset(self):
-    self.score = 0
-    self.renderScore()
-
-  def renderScore(self):
-    self.scoreSurface = self.font.render(str(self.score), True, self.color)
-
-  def add(self, addNumber = 1):
-    self.score += addNumber
-    self.renderScore()
-
-  def setText(self, text):
-    self.score = text
-    self.renderScore()
-
-  def draw(self):
-    self.screen.blit(self.scoreSurface, self.position)
 
 class App:
 
   def __init__(self):
     # position game window in the second screen
-    os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (-400,10)
+    os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (-400, 10)
 
     # initialize the pygame module
     pg.init()
@@ -201,32 +23,30 @@ class App:
     # load and set the logo
     pg.display.set_caption("Car")
 
-    self.numberOfAIs = 60
+    self.numberOfAIs = 5
 
-    self.HEIGHT = 400
+    self.HEIGHT = 600
     self.WIDTH = 400
 
-    self.fps = 120
+    self.fps = 60
     self.fps_clock = pg.time.Clock()
 
     colors = [
-        pg.Color(0, 150, 0, 125), 
-        pg.Color(150, 0, 0,125), 
-        pg.Color(0, 0, 150,125),
-        pg.Color(0, 0, 100,125),
-        pg.Color(0, 100, 150,125),
-        pg.Color(100, 100, 150,125),
-        pg.Color(10, 50, 150,125),
-        pg.Color(0, 80, 150,125),
-        pg.Color(0, 10, 150,125),
-        pg.Color(10, 0, 150,125),
-        pg.Color(80, 0, 150,125),
-        pg.Color(250, 0, 150,125),
-        ]
+        pg.Color(0, 150, 0, 125),
+        pg.Color(150, 0, 0, 125),
+        pg.Color(0, 0, 150, 125),
+        pg.Color(0, 0, 100, 125),
+        pg.Color(0, 100, 150, 125),
+        pg.Color(100, 100, 150, 125),
+        pg.Color(10, 50, 150, 125),
+        pg.Color(250, 0, 150, 125),
+    ]
 
     if len(colors) < self.numberOfAIs:
       for i in range(self.numberOfAIs - len(colors)):
-        colors.append(pg.Color(int(random.random() * 255), int(random.random() * 255), int(random.random() * 255), 125))
+        colors.append(
+            pg.Color(int(random.random() * 255), int(random.random() * 255),
+                     int(random.random() * 255), 125))
 
     self.color = {
         'car': colors,
@@ -245,7 +65,7 @@ class App:
     self.screen.fill(self.color['background'])
 
     self.gameOverCounter = 0
-    self.gameOverScore = Score(self.screen,self.color['gameOver'], (300, 20))
+    self.gameOverScore = Score(self.screen, self.color['gameOver'], (300, 20))
 
     # init AI and NN
     self.initAI()
@@ -267,8 +87,9 @@ class App:
     self.position = []
 
     for i in range(self.numberOfAIs):
-      self.carAheadRect.append(Rect(self.cars[i].x, self.cars[i].y, self.cars[i].width,
-                                     -self.HEIGHT))
+      self.carAheadRect.append(
+          Rect(self.cars[i].x, self.cars[i].y, self.cars[i].width,
+               -self.HEIGHT))
       self.isAheadClean.append(True)
       self.position.append(0)
 
@@ -285,8 +106,8 @@ class App:
 
     self.AI = []
     for i in range(self.numberOfAIs):
-      layers = [2,64,256,64,3]
-      delta = 0.01
+      layers = [2, 3, 3, 3, 3]
+      delta = 1.0
 
       W0 = []
       for i in range(layers[0]):
@@ -350,9 +171,9 @@ class App:
     # keys = pg.key.get_pressed()
 
     # if keys[pg.K_LEFT]:
-      # self.cars[0].left()
+    # self.cars[0].left()
     # if keys[pg.K_RIGHT]:
-      # self.cars[0].right()
+    # self.cars[0].right()
 
   def aiDraw(self):
     for i in range(self.numberOfAIs):
@@ -379,8 +200,9 @@ class App:
     pg.display.update()
     self.fps_clock.tick(self.fps)
 
-    isAllCarCrashed = len(list(filter(lambda x: x == True, self.isCrashed))) == len(self.isCrashed)
-    
+    isAllCarCrashed = len(list(filter(lambda x: x == True,
+                                      self.isCrashed))) == len(self.isCrashed)
+
     if isAllCarCrashed:
       print('isAllCrashed %s' % str(isAllCarCrashed))
 
@@ -403,12 +225,9 @@ class App:
 
       self.isCrashed[i] = self.cars[i].carRect.collidelist(blocks) != -1
 
-      # if self.isCrashed[i] == True:
-        # print('%d Crashed !!!' % i)
-        # pg.time.delay(300)
-
       # CALCS for AI
-      self.carAheadRect[i] = Rect(self.cars[i].x, 0, self.cars[i].width, self.HEIGHT)
+      self.carAheadRect[i] = Rect(self.cars[i].x, 0, self.cars[i].width,
+                                  self.HEIGHT)
       self.isAheadClean[i] = self.carAheadRect[i].collidelist(blocks) == -1
       self.position[i] = (self.cars[i].x) / (self.WIDTH - self.cars[i].width)
 
@@ -426,7 +245,7 @@ class App:
 
     print('>>>>>>>>>>>>>>>>>>>>>')
     print('>>>>>>>>>>>>>>>>>>>>>')
-    print('GAME OVER score %d' % maxScore) 
+    print('GAME OVER score %d' % maxScore)
     print('>>>>>>>>>>>>>>>>>>>>>')
     print('>>>>>>>>>>>>>>>>>>>>>')
 
@@ -435,16 +254,14 @@ class App:
 
     for i in range(0, self.numberOfAIs):
       if i == maxIndex or i == self.prevMaxIndex:
-        continue 
+        continue
 
-      self.AI[i].setWeights(self.AI[maxIndex].nextMutation())
-
-    # self.AI[maxIndex].setWeights(self.AI[maxIndex].nextMutation())
+      if self.scores[maxIndex].score - self.scores[i].score < 1.0:
+        self.AI[i].setWeights(self.AI[i].nextMutation())
+      else:
+        self.AI[i].setWeights(self.AI[maxIndex].nextMutation())
 
     self.prevMaxIndex = maxIndex
-
-    # Pause game
-    # pg.time.delay(100)
 
     # Reset all params
     self.wall.reset()
@@ -475,37 +292,32 @@ class App:
       if self.predicts[i][1] > moreThenToTrue:
         # print('AI turn right')
         right = True
-      
+
       # 2 - stop
-      if self.predicts[i][2] > moreThenToTrue:
+      if left == True and right == False:
+        self.cars[i].left()
+      if left == False and right == True:
+        self.cars[i].right()
+
+      isShouldTurnLeft = self.wall.gateCenter - self.cars[i].carCenter < 0
+
+      if isShouldTurnLeft == True:
         if left == True and right == False:
-          self.cars[i].left()
+          self.scores[i].add(0.001)
+        elif left == False and right == True:
+          self.scores[i].add(0.0000001)
+      else:
         if left == False and right == True:
-          self.cars[i].right()
-
-        isShouldTurnLeft = self.wall.gateCenter - self.cars[i].carCenter < 0 
-
-        if isShouldTurnLeft == True:
-          if left == True and right == False:
-            self.scores[i].add(0.001)
-          elif left == False and right == True:
-            self.scores[i].add(0.0000001)
-        else:
-          if left == False and right == True:
-            self.scores[i].add(0.001)
-          elif left == True and right == False:
-            self.scores[i].add(0.0000001)
+          self.scores[i].add(0.001)
+        elif left == True and right == False:
+          self.scores[i].add(0.0000001)
 
       if (self.isAheadClean[i] == True):
         self.scores[i].add(0.01)
       else:
         self.scores[i].add(-0.000001)
 
-
-    #print('Predict #%d' % self.prevMaxIndex, [int(self.isAheadClean[self.prevMaxIndex]), self.position[self.prevMaxIndex]], self.predicts[self.prevMaxIndex])
-
   def run(self):
-    # main loop
     while 1:
       self.handleEvents()
       self.handleAI()

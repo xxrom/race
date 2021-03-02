@@ -9,8 +9,8 @@ class AI(nn.Module):
   def __init__(self, weights=None, layers=[2,3,3,3,3]):
     super(AI, self).__init__()
 
-    self.chanceToAllNew = 0.1
-    self.skipMutation = 0.8
+    # self.chanceToAllNew = 0.01
+    self.skipMutation = 0.5
     self.changeInterval = 0.5
 
     self.weights = weights.copy()
@@ -116,8 +116,8 @@ class AI(nn.Module):
 
   def nextMutation(self):
     allNew = False
-    if random.random() <= self.chanceToAllNew:
-      allNew = True
+    # if random.random() <= self.chanceToAllNew:
+      # allNew = True
 
     weights = [] 
 
