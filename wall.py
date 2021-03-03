@@ -19,7 +19,7 @@ class Wall:
     self.prevLeftWallSize = 0
 
     # Wall Speed
-    self.initSpeed = 10
+    self.initSpeed = 18
     self.speedIncrease = 0.00
     self.speed = self.initSpeed
 

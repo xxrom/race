@@ -23,13 +23,13 @@ class App:
     # load and set the logo
     pg.display.set_caption("Car")
 
-    self.numberOfCars = 5
+    self.numberOfCars = 50
     self.Evolution = Evolution(self.numberOfCars)
 
-    self.HEIGHT = 600
+    self.HEIGHT = 180
     self.WIDTH = 400
 
-    self.fps = 60
+    self.fps = 600
     self.fps_clock = pg.time.Clock()
 
     colors = [
@@ -62,7 +62,8 @@ class App:
     self.gameOverText = 'GAME OVER!'
 
     # create a surface on screen that has the size of 240 x 180
-    self.screen = pg.display.set_mode((self.WIDTH, self.HEIGHT), display=1)
+    # self.screen = pg.display.set_mode((self.WIDTH, self.HEIGHT), display=1)
+    self.screen = pg.display.set_mode((self.WIDTH, self.HEIGHT), display=0)
     self.screen.fill(self.color['background'])
 
     self.gameOverCounter = 0
@@ -158,7 +159,7 @@ class App:
                                       self.isCrashed))) == len(self.isCrashed)
 
     if isAllCarCrashed:
-      print('isAllCrashed %s' % str(isAllCarCrashed))
+      # print('isAllCrashed %s' % str(isAllCarCrashed))
 
       # GAME OVER text
       self.gameOverRender = self.font.render(
@@ -190,8 +191,8 @@ class App:
     self.gameOverScore.setText(self.gameOverCounter)
 
     print('>>>>>>>>>>>>>>>>>>>>>')
-    print('GAME OVER')
-    print('>>>>>>>>>>>>>>>>>>>>>')
+    # print('GAME OVER')
+    # print('>>>>>>>>>>>>>>>>>>>>>')
 
     self.Evolution.mutatePopulation(self.scores)
 
@@ -214,40 +215,50 @@ class App:
       predict = self.Evolution.getChildPrediciton(i, X)
 
       left = False
-      # 0 - left
+      right = False
       if predict[0] > moreThenToTrue:
-        # print('AI turn left')
         left = True
 
-      right = False
-      # 1 - right
       if predict[1] > moreThenToTrue:
-        # print('AI turn right')
         right = True
 
-      # 2 - stop
+      if predict[2] > moreThenToTrue:
+        left = False
+        right = False
+
       if left == True and right == False:
         self.cars[i].left()
       if left == False and right == True:
         self.cars[i].right()
 
-      isShouldTurnLeft = self.wall.gateCenter - self.cars[i].carCenter < 0
+      diff = abs(self.wall.gateCenter - self.cars[i].carCenter) * 0.0001
 
-      if isShouldTurnLeft == True:
-        if left == True and right == False:
-          self.scores[i].add(0.001)
-        elif left == False and right == True:
-          self.scores[i].add(0.0000001)
-      else:
-        if left == False and right == True:
-          self.scores[i].add(0.001)
-        elif left == True and right == False:
-          self.scores[i].add(0.0000001)
+      self.scores[i].add(-diff)
+
+      # if isShouldTurnLeft:
+      # if left == True:
+      # self.scores[i].add(0.01)
+      # # if right == True:
+      # # self.scores[i].add(-0.01)
+      # else:
+      # if right == True:
+      # self.scores[i].add(0.01)
+      # # if left == True:
+      # # self.scores[i].add(-0.01)
+
+      # if isShouldTurnLeft == True:
+      # if left == True and right == False:
+      # self.scores[i].add(0.001)
+      # elif left == False and right == True:
+      # self.scores[i].add(0.0000001)
+      # else:
+      # if left == False and right == True:
+      # self.scores[i].add(0.001)
+      # elif left == True and right == False:
+      # self.scores[i].add(0.0000001)
 
       if (self.isAheadClean[i] == True):
-        self.scores[i].add(0.01)
-      else:
-        self.scores[i].add(-0.000001)
+        self.scores[i].add(0.02)
 
   def run(self):
     while 1:

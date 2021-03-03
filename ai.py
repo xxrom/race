@@ -6,7 +6,7 @@ import random
 # Neural_Network
 class AI(nn.Module):
 
-  def __init__(self, weights=None, layers=[2,3,3,3,3]):
+  def __init__(self, weights=None, layers=[2, 3, 3, 3, 3]):
     super(AI, self).__init__()
 
     # self.chanceToAllNew = 0.01
@@ -81,10 +81,10 @@ class AI(nn.Module):
     # self.xPredicted = o
 
   # def saveWeights(self, model):
-    # we will use the PyTorch internal storage functions
-    # torch.save(model, "NN")
-    # you can reload model with all the weights and so forth with:
-    # torch.load("NN")
+  # we will use the PyTorch internal storage functions
+  # torch.save(model, "NN")
+  # you can reload model with all the weights and so forth with:
+  # torch.load("NN")
 
   def setWeights(self, weights):
     self.weights = weights[:]
@@ -94,56 +94,13 @@ class AI(nn.Module):
     self.W2 = torch.tensor(([self.weights[2]]), dtype=torch.float)
     self.W3 = torch.tensor(([self.weights[3]]), dtype=torch.float)
 
-  def getNextWeight(self, weight):
-    # skit change
-    if random.random() < self.skipMutation:
-      return weight
-
-    isPlusChange = True if random.random() > 0.5  else False
-    # print('isPlug %s' % str(isPlusChange))
-
-    delta = self.changeInterval * random.random()
-    # print('delta', delta)
-
-    if random.random() > 0.5 and (weight + delta) <= 1.0:
-      # print('Plus + delta', weight, weight + delta)
-      return weight + delta
-    elif (weight - delta) >= 0.0:
-      # print('Minus - delta',weight,  weight - delta)
-      return weight - delta
-
-    return random.random()
-
-  def nextMutation(self):
-    allNew = False
-    # if random.random() <= self.chanceToAllNew:
-      # allNew = True
-
-    weights = [] 
-
-    for i in range(len(self.weights)):
-
-      wi = []
-      for j in range(len(self.weights[i])):
-
-        wj = []
-        for k in range(len(self.weights[i][j])):
-          if allNew == False:
-            wj.append(self.getNextWeight(self.weights[i][j][k]))
-          else:
-            wj.append(random.random())
-          # print('Old w = %f => %f' % (self.weights[i][j][k], wj[len(wj) -1 ]))
-
-        wi.append(wj)
-      weights.append(wi)
-
-    return weights
+  def getWeightByIndexes(self, i, j, k):
+    return self.weights[i][j][k]
 
   def predictByX(self, X):
     # print('pred', X)
     self.X = torch.tensor((X), dtype=torch.float)
     self.predict = self.forward(self.X)
 
-    # print('Prediction %s' % str(self.predict)) 
+    # print('Prediction %s' % str(self.predict))
     return self.predict.data.tolist()[0][0]
-

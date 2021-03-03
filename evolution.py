@@ -7,7 +7,11 @@ class Evolution:
 
   def __init__(self, numberOfChildren=5):
     self.numberOfChildren = numberOfChildren
-    self.nnLayers = [2, 3, 3, 3, 3]
+    self.nnLayers = [2, 4, 8, 4, 3]
+    self.numberBestOfChildren = 3
+    self.mutateRate = 0.1
+
+    self.bestScore = 0
 
   def init(self):
     self.prevMaxIndex = 0
@@ -58,24 +62,66 @@ class Evolution:
   def getChildWeights(self, index):
     return self.population[index].weights
 
+  def getWeightFromBestChildren(self, i, j, k):
+    randomChildIndex = random.randrange(0, self.numberBestOfChildren)
+
+    return self.bestChildren[randomChildIndex].getWeightByIndexes(i, j, k)
+
+  def mutateChild(self, child):
+    weights = []
+
+    for i in range(len(child.weights)):
+
+      wi = []
+      for j in range(len(child.weights[i])):
+
+        wj = []
+        for k in range(len(child.weights[i][j])):
+          if random.random() > self.mutateRate:
+            wj.append(self.getWeightFromBestChildren(i, j, k))
+          else:
+            wj.append(random.random())
+
+        wi.append(wj)
+      weights.append(wi)
+
+    child.setWeights(weights)
+
   def mutatePopulation(self, scores):
-    maxScore = 0
-    maxIndex = 0
-    self.scores = scores
+    childrenList = []
 
     for i in range(self.numberOfChildren):
-      if self.scores[i].score >= maxScore:
-        maxScore = self.scores[i].score
-        maxIndex = i
+      childrenList.append({'index': i, 'score': scores[i].score})
 
-    # TODO: stop car until all cars will be crashed
-    print('Parent weights', self.getChildWeights(maxIndex))
+    childrenList = sorted(childrenList, key=lambda x: x['score'])
 
-    for i in range(0, self.numberOfChildren):
-      if i == maxIndex or i == self.prevMaxIndex:
+    print(childrenList)
+
+    bestChildrenList = childrenList[-self.numberBestOfChildren:]
+
+    print(bestChildrenList)
+
+    self.bestChildren = list(
+        map(lambda x: self.population[x['index']], bestChildrenList))
+
+    bestChildrenIndexes = list(map(lambda x: x['index'], bestChildrenList))
+    print(bestChildrenList, bestChildrenIndexes)
+
+    bestScore = scores[bestChildrenIndexes[-1]].score
+
+    if bestScore > self.bestScore:
+      self.bestScore = bestScore
+
+    print(bestChildrenIndexes, bestScore, self.bestScore)
+
+    for i in range(self.numberOfChildren):
+      if i in bestChildrenIndexes:
+        print('skip', i)
         continue
 
-      self.population[i].setWeights(self.population[maxIndex].nextMutation())
+      child = self.population[i]
+
+      self.mutateChild(child)
 
   def getChildPrediciton(self, index, X):
     return self.population[index].predictByX(X)
