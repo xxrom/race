@@ -1,4 +1,5 @@
 import random
+import numpy as np
 
 from ai import AI
 
@@ -7,9 +8,10 @@ class Evolution:
 
   def __init__(self, numberOfChildren=5):
     self.numberOfChildren = numberOfChildren
-    self.nnLayers = [2, 4, 8, 4, 3]
-    self.numberBestOfChildren = 3
-    self.mutateRate = 0.1
+    self.nnLayers = [2, 20, 20, 2, 3]
+    self.numberBestOfChildren = 2
+    self.mutateRate = 0.15
+    self.mutateBestChildrenRate = 0.001
 
     self.bestScore = 0
 
@@ -19,7 +21,7 @@ class Evolution:
     self.population = []
 
     for i in range(self.numberOfChildren):
-      delta = 1.0
+      delta = 0.1
 
       W0 = []
       for i in range(self.nnLayers[0]):
@@ -34,7 +36,6 @@ class Evolution:
         w = []
         for j in range(self.nnLayers[2]):
           w.append(random.random() * delta)
-
         W1.append(w)
 
       W2 = []
@@ -42,18 +43,18 @@ class Evolution:
         w = []
         for j in range(self.nnLayers[3]):
           w.append(random.random() * delta)
-
         W2.append(w)
 
-      W3 = []
-      for i in range(self.nnLayers[3]):
-        w = []
-        for j in range(self.nnLayers[4]):
-          w.append(random.random() * delta)
+      # W3 = []
+      # for i in range(self.nnLayers[3]):
+      # w = []
+      # for j in range(self.nnLayers[4]):
+      # w.append(random.random() * delta)
 
-        W3.append(w)
+      # W3.append(w)
 
-      weights = [W0, W1, W2, W3]
+      # weights = [W0, W1, W2, W3]
+      weights = [W0, W1, W2]
 
       child = AI(weights, self.nnLayers)
 
@@ -62,10 +63,13 @@ class Evolution:
   def getChildWeights(self, index):
     return self.population[index].weights
 
-  def getWeightFromBestChildren(self, i, j, k):
+  def getWeightFromBestChildren(self, i, j, k=None):
     randomChildIndex = random.randrange(0, self.numberBestOfChildren)
 
-    return self.bestChildren[randomChildIndex].getWeightByIndexes(i, j, k)
+    if k is not None:
+      return self.bestChildren[randomChildIndex].getWeightByIndexes(i, j, k)
+
+    return self.bestChildren[randomChildIndex].getWeightByIndexes(i, j)
 
   def mutateChild(self, child):
     weights = []
@@ -75,12 +79,13 @@ class Evolution:
       wi = []
       for j in range(len(child.weights[i])):
 
-        wj = []
-        for k in range(len(child.weights[i][j])):
-          if random.random() > self.mutateRate:
-            wj.append(self.getWeightFromBestChildren(i, j, k))
-          else:
-            wj.append(random.random())
+        size = len(child.weights[i][j])
+
+        wj = None
+        if random.random() > self.mutateRate:
+          wj = self.getWeightFromBestChildren(i, j)
+        else:
+          wj = np.random.random_sample(size=size)
 
         wi.append(wj)
       weights.append(wi)
@@ -95,33 +100,34 @@ class Evolution:
 
     childrenList = sorted(childrenList, key=lambda x: x['score'])
 
-    print(childrenList)
+    # print(childrenList)
 
     bestChildrenList = childrenList[-self.numberBestOfChildren:]
 
-    print(bestChildrenList)
+    # print(bestChildrenList)
 
     self.bestChildren = list(
         map(lambda x: self.population[x['index']], bestChildrenList))
 
     bestChildrenIndexes = list(map(lambda x: x['index'], bestChildrenList))
-    print(bestChildrenList, bestChildrenIndexes)
+    # print(bestChildrenList, bestChildrenIndexes)
 
     bestScore = scores[bestChildrenIndexes[-1]].score
 
     if bestScore > self.bestScore:
       self.bestScore = bestScore
 
-    print(bestChildrenIndexes, bestScore, self.bestScore)
+    print(bestChildrenIndexes)
+    print(bestScore, '(', self.bestScore, ')')
 
     for i in range(self.numberOfChildren):
-      if i in bestChildrenIndexes:
-        print('skip', i)
+      isSkipped = i in bestChildrenIndexes and random.random(
+      ) > self.mutateBestChildrenRate
+
+      if isSkipped:
         continue
 
-      child = self.population[i]
-
-      self.mutateChild(child)
+      self.mutateChild(self.population[i])
 
   def getChildPrediciton(self, index, X):
     return self.population[index].predictByX(X)

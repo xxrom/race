@@ -2,16 +2,18 @@ import torch
 import torch.nn as nn
 import random
 
+import numpy as np
+
+CPUS = 6
+torch.set_num_threads(CPUS * 2)
+torch.set_num_interop_threads(CPUS)
+
 
 # Neural_Network
 class AI(nn.Module):
 
-  def __init__(self, weights=None, layers=[2, 3, 3, 3, 3]):
+  def __init__(self, weights=None, layers=[2, 4, 4, 3, 3]):
     super(AI, self).__init__()
-
-    # self.chanceToAllNew = 0.01
-    self.skipMutation = 0.5
-    self.changeInterval = 0.5
 
     self.weights = weights.copy()
     self.layers = layers.copy()
@@ -22,19 +24,20 @@ class AI(nn.Module):
     self.hiddenSize0 = layers[1]
     self.hiddenSize1 = layers[2]
     self.hiddenSize2 = layers[3]
-    self.outputSize = layers[4]
+    # self.outputSize = layers[4]
 
     # weights
     if weights is not None:
-      self.W0 = torch.tensor(([weights[0]]), dtype=torch.float)
-      self.W1 = torch.tensor(([weights[1]]), dtype=torch.float)
-      self.W2 = torch.tensor(([weights[2]]), dtype=torch.float)
-      self.W3 = torch.tensor(([weights[3]]), dtype=torch.float)
+      self.setWeights(weights)
+      # self.W0 = torch.tensor(([weights[0]]), dtype=torch.float)
+      # self.W1 = torch.tensor(([weights[1]]), dtype=torch.float)
+      # self.W2 = torch.tensor(([weights[2]]), dtype=torch.float)
+      # self.W3 = torch.tensor(([weights[3]]), dtype=torch.float)
     else:
       self.W0 = torch.randn(self.inputSize, self.hiddenSize0)
       self.W1 = torch.randn(self.hiddenSize0, self.hiddenSize1)
       self.W2 = torch.randn(self.hiddenSize1, self.outputSize2)
-      self.W3 = torch.randn(self.hiddenSize2, self.outputSize)
+      # self.W3 = torch.randn(self.hiddenSize2, self.outputSize)
 
     # print('>>>>>>>>>>>>>>>>>>>>>>>')
     # print('NEW NN weights', self.W0, self.W1, self.W2)
@@ -42,21 +45,26 @@ class AI(nn.Module):
 
   def forward(self, X):
     # 3 X 3 ".dot" does not broadcast in PyTorch
-    self.z1 = torch.matmul(X, self.W0)
+    # MyX = torch.tensor(([X]), dtype=torch.float)
+
+    # matrix multiplication
+    self.z1 = X @ self.W0
     # activation function
     self.z2 = self.sigmoid(self.z1)
 
-    self.z3 = torch.matmul(self.z2, self.W1)
+    self.z3 = self.z2 @ self.W1
     self.z4 = self.sigmoid(self.z3)
 
-    self.z5 = torch.matmul(self.z4, self.W2)
+    self.z5 = self.z4 @ self.W2
     self.z6 = self.sigmoid(self.z5)
 
-    self.z7 = torch.matmul(self.z6, self.W3)
-    # final activation function
-    o = self.sigmoid(self.z7)
+    return self.z6
 
-    return o
+    # self.z7 = torch.matmul(self.z6, self.W3)
+    # final activation function
+    # o = self.sigmoid(self.z7)
+
+    # return o
 
   def sigmoid(self, s):
     return 1 / (1 + torch.exp(-s))
@@ -89,13 +97,24 @@ class AI(nn.Module):
   def setWeights(self, weights):
     self.weights = weights[:]
 
+    # w0 = np.array(self.weights[0]).transpose().tolist()
+    # w1 = np.array(self.weights[1]).transpose().tolist()
+    # w2 = np.array(self.weights[2]).transpose().tolist()
+
+    # self.W0 = torch.tensor(([w0]), dtype=torch.float)
+    # self.W1 = torch.tensor(([w1]), dtype=torch.float)
+    # self.W2 = torch.tensor(([w2]), dtype=torch.float)
+
     self.W0 = torch.tensor(([self.weights[0]]), dtype=torch.float)
     self.W1 = torch.tensor(([self.weights[1]]), dtype=torch.float)
     self.W2 = torch.tensor(([self.weights[2]]), dtype=torch.float)
-    self.W3 = torch.tensor(([self.weights[3]]), dtype=torch.float)
+    # self.W3 = torch.tensor(([self.weights[3]]), dtype=torch.float)
 
-  def getWeightByIndexes(self, i, j, k):
-    return self.weights[i][j][k]
+  def getWeightByIndexes(self, i, j, k=None):
+    if type(i) is int and type(j) is int and type(k) is int:
+      return self.weights[i][j][k]
+
+    return self.weights[i][j]
 
   def predictByX(self, X):
     # print('pred', X)

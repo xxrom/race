@@ -23,13 +23,13 @@ class App:
     # load and set the logo
     pg.display.set_caption("Car")
 
-    self.numberOfCars = 50
+    self.numberOfCars = 40
     self.Evolution = Evolution(self.numberOfCars)
 
     self.HEIGHT = 180
     self.WIDTH = 400
 
-    self.fps = 600
+    self.fps = 120
     self.fps_clock = pg.time.Clock()
 
     colors = [
@@ -144,7 +144,7 @@ class App:
         continue
 
       self.cars[i].draw()
-      self.scores[i].draw()
+      # self.scores[i].draw()
 
     # Helpful info for AI
     # self.aiDraw()
@@ -190,8 +190,6 @@ class App:
     self.gameOverCounter += 1
     self.gameOverScore.setText(self.gameOverCounter)
 
-    print('>>>>>>>>>>>>>>>>>>>>>')
-    # print('GAME OVER')
     # print('>>>>>>>>>>>>>>>>>>>>>')
 
     self.Evolution.mutatePopulation(self.scores)
@@ -205,14 +203,16 @@ class App:
       self.cars[i].reset()
 
   def handleAI(self):
-    moreThenToTrue = 0.7
+    moreThenToTrue = 0.99
 
-    for i in range(0, self.numberOfCars):
+    for i in range(self.numberOfCars):
       if self.isCrashed[i] == True:
         continue
 
-      X = [int(self.isAheadClean[i]), self.position[i]]
+      X = [[int(self.isAheadClean[i]), self.position[i]]]
       predict = self.Evolution.getChildPrediciton(i, X)
+      if i == 0:
+        print(predict)
 
       left = False
       right = False
@@ -222,9 +222,9 @@ class App:
       if predict[1] > moreThenToTrue:
         right = True
 
-      if predict[2] > moreThenToTrue:
-        left = False
-        right = False
+      # if predict[2] > moreThenToTrue:
+      # left = False
+      # right = False
 
       if left == True and right == False:
         self.cars[i].left()
@@ -232,6 +232,9 @@ class App:
         self.cars[i].right()
 
       diff = abs(self.wall.gateCenter - self.cars[i].carCenter) * 0.0001
+
+      # if i == 0:
+      # print(self.scores[i].score, diff)
 
       self.scores[i].add(-diff)
 
