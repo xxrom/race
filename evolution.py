@@ -8,8 +8,8 @@ class Evolution:
 
   def __init__(self, numberOfChildren=5):
     self.numberOfChildren = numberOfChildren
-    self.nnLayers = [2, 20, 20, 2, 3]
-    self.numberBestOfChildren = 2
+    self.nnLayers = [2, 4, 3, 2, 3]
+    self.numberBestOfChildren = 4
     self.mutateRate = 0.15
     self.mutateBestChildrenRate = 0.001
 
@@ -21,7 +21,7 @@ class Evolution:
     self.population = []
 
     for i in range(self.numberOfChildren):
-      delta = 0.1
+      delta = 0.5
 
       W0 = []
       for i in range(self.nnLayers[0]):
@@ -75,22 +75,30 @@ class Evolution:
     weights = []
 
     for i in range(len(child.weights)):
-
       wi = []
       for j in range(len(child.weights[i])):
-
-        size = len(child.weights[i][j])
-
-        wj = None
-        if random.random() > self.mutateRate:
-          wj = self.getWeightFromBestChildren(i, j)
-        else:
-          wj = np.random.random_sample(size=size)
+        wj = []
+        for k in range(len(child.weights[i][j])):
+          if random.random() > self.mutateRate:
+            wj.append(self.getWeightFromBestChildren(i, j, k))
+          else:
+            wj.append(random.random())
 
         wi.append(wj)
       weights.append(wi)
 
     child.setWeights(weights)
+    '''
+    weight = None
+    for i in range(len(child.weights)):
+      for j in range(len(child.weights[i])):
+        for k in range(len(child.weights[i][j])):
+          if random.random() > self.mutateRate:
+            weight = self.getWeightFromBestChildren(i, j, k)
+            child.setWeightsByIndexes(weight, i, j, k)
+          else:
+            child.setWeightsByIndexes(random.random(), i, j, k)
+    '''
 
   def mutatePopulation(self, scores):
     childrenList = []
@@ -117,8 +125,7 @@ class Evolution:
     if bestScore > self.bestScore:
       self.bestScore = bestScore
 
-    print(bestChildrenIndexes)
-    print(bestScore, '(', self.bestScore, ')')
+    print(bestScore, '(', self.bestScore, ')', bestChildrenIndexes)
 
     for i in range(self.numberOfChildren):
       isSkipped = i in bestChildrenIndexes and random.random(

@@ -6,7 +6,9 @@ Rect = pg.Rect
 
 class Wall:
 
-  def __init__(self, screen, color, car, scores):
+  def __init__(self, isDrawable, screen, screenWidth, color, carWidth, scores):
+    self.isDrawable = isDrawable
+
     self.screen = screen
     self.wallColor = color
     self.gateColor = (255, 255, 255, 185)
@@ -23,8 +25,8 @@ class Wall:
     self.speedIncrease = 0.00
     self.speed = self.initSpeed
 
-    self.carWidth = car.width
-    self.width = self.screen.get_width()
+    self.carWidth = carWidth
+    self.width = screenWidth
     self.height = self.carWidth
 
     # Gate

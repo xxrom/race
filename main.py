@@ -2,6 +2,8 @@ import pygame as pg
 import random
 import sys
 import os
+import time
+import multiprocessing
 
 from car import Car
 from wall import Wall
@@ -10,10 +12,14 @@ from evolution import Evolution
 
 Rect = pg.Rect
 
+multiprocessing.set_start_method("fork")
+
 
 class App:
 
   def __init__(self):
+    self.isDrawable = True
+
     # position game window in the second screen
     os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (-400, 10)
 
@@ -23,13 +29,16 @@ class App:
     # load and set the logo
     pg.display.set_caption("Car")
 
-    self.numberOfCars = 40
+    self.CPUS = 12
+    self.numberOfCars = self.CPUS * 30
     self.Evolution = Evolution(self.numberOfCars)
 
     self.HEIGHT = 180
     self.WIDTH = 400
+    self.CAR_SIZE = 80
 
-    self.fps = 120
+    self.enableFps = False
+    self.fps = 600
     self.fps_clock = pg.time.Clock()
 
     colors = [
@@ -66,16 +75,27 @@ class App:
     self.screen = pg.display.set_mode((self.WIDTH, self.HEIGHT), display=0)
     self.screen.fill(self.color['background'])
 
-    self.gameOverCounter = 0
-    self.gameOverScore = Score(self.screen, self.color['gameOver'], (300, 20))
-
     # init AI and NN
     self.Evolution.init()
 
+    self.initTime()
     self.initCars()
     self.initScores()
+    self.initGameOver()
 
-    self.wall = Wall(self.screen, self.color['wall'], self.cars[0], self.scores)
+    self.wall = Wall(self.isDrawable, self.screen, self.WIDTH,
+                     self.color['wall'], self.CAR_SIZE, self.scores)
+
+  def initTime(self):
+    self.time = time.time()
+    self.timeCounter = 0
+    self.timeAvg = 0
+
+  def initGameOver(self):
+    self.gameOverCounter = 0
+
+    if self.isDrawable:
+      self.gameOverScore = Score(self.screen, self.color['gameOver'], (300, 20))
 
   def initScores(self):
     self.scores = []
@@ -90,7 +110,7 @@ class App:
 
     for i in range(self.numberOfCars):
       self.carAheadRect.append(
-          Rect(self.cars[i].x, self.cars[i].y, self.cars[i].width,
+          Rect(self.cars[i].x, self.cars[i].y, self.cars[i].WIDTH,
                -self.HEIGHT))
       self.isAheadClean.append(True)
       self.position.append(0)
@@ -100,7 +120,9 @@ class App:
     self.isCrashed = []
 
     for i in range(self.numberOfCars):
-      self.cars.append(Car(self.screen, self.color['car'][i]))
+      self.cars.append(
+          Car(self.isDrawable, self.screen, self.CAR_SIZE,
+              self.color['car'][i]))
       self.isCrashed.append(False)
 
     self.initCarPostions()
@@ -119,16 +141,23 @@ class App:
         pg.quit()
         sys.exit()
 
-    # GAME events
-    self.wall.tick(self.setNextScores)
-
     # USER events
-    # keys = pg.key.get_pressed()
+    keys = pg.key.get_pressed()
 
     # if keys[pg.K_LEFT]:
     # self.cars[0].left()
     # if keys[pg.K_RIGHT]:
     # self.cars[0].right()
+
+  def ticks(self):
+    # GAME events
+    self.wall.tick(self.setNextScores)
+
+    for i in range(self.numberOfCars):
+      if self.isCrashed[i] == True:
+        continue
+
+      self.cars[i].tick()
 
   def aiDraw(self):
     for i in range(self.numberOfCars):
@@ -152,8 +181,11 @@ class App:
     self.gameOverScore.draw()
 
   def displayUpdate(self):
-    pg.display.update()
-    self.fps_clock.tick(self.fps)
+    if self.isDrawable:
+      pg.display.update()
+
+      if self.enableFps:
+        self.fps_clock.tick(self.fps)
 
     isAllCarCrashed = len(list(filter(lambda x: x == True,
                                       self.isCrashed))) == len(self.isCrashed)
@@ -161,12 +193,13 @@ class App:
     if isAllCarCrashed:
       # print('isAllCrashed %s' % str(isAllCarCrashed))
 
-      # GAME OVER text
-      self.gameOverRender = self.font.render(
-          str('%s : %d' % (self.gameOverText, self.scores[0].score)), True,
-          self.color['gameOver'])
-
-      self.screen.blit(self.gameOverRender, (self.WIDTH // 4, self.HEIGHT // 3))
+      if self.isDrawable:
+        # GAME OVER text
+        self.gameOverRender = self.font.render(
+            str('%s : %d' % (self.gameOverText, self.scores[0].score)), True,
+            self.color['gameOver'])
+        self.screen.blit(self.gameOverRender,
+                         (self.WIDTH // 4, self.HEIGHT // 3))
 
       self.gameOver()
 
@@ -181,16 +214,28 @@ class App:
       self.isCrashed[i] = self.cars[i].carRect.collidelist(blocks) != -1
 
       # CALCS for AI
-      self.carAheadRect[i] = Rect(self.cars[i].x, 0, self.cars[i].width,
+      self.carAheadRect[i] = Rect(self.cars[i].x, 0, self.cars[i].WIDTH,
                                   self.HEIGHT)
       self.isAheadClean[i] = self.carAheadRect[i].collidelist(blocks) == -1
-      self.position[i] = (self.cars[i].x) / (self.WIDTH - self.cars[i].width)
+      self.position[i] = (self.cars[i].x) / (self.WIDTH - self.cars[i].WIDTH)
+
+  def measureTimeExecution(self):
+    self.timeCounter += 1
+
+    currentTime = time.time()
+    diff = currentTime - self.time
+
+    self.time = currentTime
+    self.timeAvg = ((self.timeAvg + diff) / 2)
+
+    if self.timeCounter % 10 == 0:
+      print('tick fps = ', 1 / self.timeAvg)
 
   def gameOver(self):
     self.gameOverCounter += 1
-    self.gameOverScore.setText(self.gameOverCounter)
 
-    # print('>>>>>>>>>>>>>>>>>>>>>')
+    if self.isDrawable:
+      self.gameOverScore.setText(self.gameOverCounter)
 
     self.Evolution.mutatePopulation(self.scores)
 
@@ -202,17 +247,16 @@ class App:
       self.scores[i].reset()
       self.cars[i].reset()
 
-  def handleAI(self):
-    moreThenToTrue = 0.99
+  def AIJob(self, start, end):
+    moreThenToTrue = 0.7
 
-    for i in range(self.numberOfCars):
+    for i in range(start, end):
+
       if self.isCrashed[i] == True:
         continue
 
       X = [[int(self.isAheadClean[i]), self.position[i]]]
       predict = self.Evolution.getChildPrediciton(i, X)
-      if i == 0:
-        print(predict)
 
       left = False
       right = False
@@ -233,50 +277,74 @@ class App:
 
       diff = abs(self.wall.gateCenter - self.cars[i].carCenter) * 0.0001
 
-      # if i == 0:
-      # print(self.scores[i].score, diff)
-
       self.scores[i].add(-diff)
-
-      # if isShouldTurnLeft:
-      # if left == True:
-      # self.scores[i].add(0.01)
-      # # if right == True:
-      # # self.scores[i].add(-0.01)
-      # else:
-      # if right == True:
-      # self.scores[i].add(0.01)
-      # # if left == True:
-      # # self.scores[i].add(-0.01)
-
-      # if isShouldTurnLeft == True:
-      # if left == True and right == False:
-      # self.scores[i].add(0.001)
-      # elif left == False and right == True:
-      # self.scores[i].add(0.0000001)
-      # else:
-      # if left == False and right == True:
-      # self.scores[i].add(0.001)
-      # elif left == True and right == False:
-      # self.scores[i].add(0.0000001)
 
       if (self.isAheadClean[i] == True):
         self.scores[i].add(0.02)
 
+  def handleAI(self):
+    CPUS = self.CPUS
+
+    interval = self.numberOfCars // CPUS
+
+    jobs = []
+
+    for i in range(CPUS):
+      start = i * interval
+      end = start + interval
+
+      process = multiprocessing.Process(target=self.AIJob, args=(
+          start,
+          end,
+      ))
+
+      jobs.append(process)
+
+    # Start the processes (i.e. calculate the random number lists)
+    for j in jobs:
+      j.start()
+
+    # Ensure all of the processes have finished
+    for j in jobs:
+      j.join()
+
   def run(self):
+
     while 1:
+      # t0 = time.time()
+
       self.handleEvents()
+      # t1 = time.time()
+
+      self.ticks()
+      # t2 = time.time()
+
       self.handleAI()
+      # t3 = time.time()
 
       self.checkCollisions()
-      self.draw()
+      # t4 = time.time()
+
+      if self.isDrawable:
+        self.draw()
 
       self.displayUpdate()
+      # t5 = time.time()
+
+      self.measureTimeExecution()
+      # t6 = time.time
+
+      # print('-------------')
+      # print(t0)
+      # print(t1)
+      # print(t2)
+      # print(t3)
+      # print(t4)
+      # print(t5)
 
 
 # run the main function only if this module is executed as the main script
 # (if you import this as a module then nothing is executed)
 if __name__ == "__main__":
-  # call the main function
   app = App()
   app.run()
