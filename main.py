@@ -29,16 +29,18 @@ class App:
     # load and set the logo
     pg.display.set_caption("Car")
 
-    self.CPUS = 12
-    self.numberOfCars = self.CPUS * 30
+    # self.CPUS = 12
+    # self.numberOfCars = self.CPUS * 16
+    self.CPUS = 6
+    self.numberOfCars = self.CPUS * 8
     self.Evolution = Evolution(self.numberOfCars)
 
     self.HEIGHT = 180
     self.WIDTH = 400
     self.CAR_SIZE = 80
 
-    self.enableFps = False
-    self.fps = 600
+    self.enableFps = True
+    self.fps = 60
     self.fps_clock = pg.time.Clock()
 
     colors = [
@@ -121,7 +123,7 @@ class App:
 
     for i in range(self.numberOfCars):
       self.cars.append(
-          Car(self.isDrawable, self.screen, self.CAR_SIZE,
+          Car(self.isDrawable, self.screen, self.WIDTH, self.CAR_SIZE,
               self.color['car'][i]))
       self.isCrashed.append(False)
 
@@ -144,10 +146,10 @@ class App:
     # USER events
     keys = pg.key.get_pressed()
 
-    # if keys[pg.K_LEFT]:
-    # self.cars[0].left()
-    # if keys[pg.K_RIGHT]:
-    # self.cars[0].right()
+    if keys[pg.K_LEFT]:
+      self.cars[0].left()
+    if keys[pg.K_RIGHT]:
+      self.cars[0].right()
 
   def ticks(self):
     # GAME events
@@ -173,10 +175,10 @@ class App:
         continue
 
       self.cars[i].draw()
-      # self.scores[i].draw()
+      self.scores[i].draw()
 
     # Helpful info for AI
-    # self.aiDraw()
+    self.aiDraw()
 
     self.gameOverScore.draw()
 
@@ -228,7 +230,7 @@ class App:
     self.time = currentTime
     self.timeAvg = ((self.timeAvg + diff) / 2)
 
-    if self.timeCounter % 10 == 0:
+    if self.timeCounter % 200 == 0:
       print('tick fps = ', 1 / self.timeAvg)
 
   def gameOver(self):
@@ -247,42 +249,31 @@ class App:
       self.scores[i].reset()
       self.cars[i].reset()
 
-  def AIJob(self, start, end):
-    moreThenToTrue = 0.7
-
-    for i in range(start, end):
-
-      if self.isCrashed[i] == True:
-        continue
-
-      X = [[int(self.isAheadClean[i]), self.position[i]]]
-      predict = self.Evolution.getChildPrediciton(i, X)
-
-      left = False
-      right = False
-      if predict[0] > moreThenToTrue:
-        left = True
-
-      if predict[1] > moreThenToTrue:
-        right = True
-
-      # if predict[2] > moreThenToTrue:
-      # left = False
-      # right = False
-
-      if left == True and right == False:
-        self.cars[i].left()
-      if left == False and right == True:
-        self.cars[i].right()
-
-      diff = abs(self.wall.gateCenter - self.cars[i].carCenter) * 0.0001
-
-      self.scores[i].add(-diff)
-
-      if (self.isAheadClean[i] == True):
-        self.scores[i].add(0.02)
-
   def handleAI(self):
+    moreThenToTrue = 0.8
+
+    def AIJob(start, end):
+      for index in range(start, end):
+
+        if self.isCrashed[index] == True:
+          continue
+
+        X = [[int(self.isAheadClean[index]), self.position[index]]]
+        predict = self.Evolution.getChildPrediciton(index, X)
+
+        if index == 0:
+          print(predict)
+
+        if predict[0] > moreThenToTrue:
+          self.cars[index].left()
+
+        if predict[1] > moreThenToTrue:
+          self.cars[index].right()
+
+        diff = abs(self.wall.gateCenter - self.cars[index].carCenter) * 0.0001
+
+        self.scores[index].add(-diff)
+
     CPUS = self.CPUS
 
     interval = self.numberOfCars // CPUS
@@ -293,18 +284,16 @@ class App:
       start = i * interval
       end = start + interval
 
-      process = multiprocessing.Process(target=self.AIJob, args=(
+      process = multiprocessing.Process(target=AIJob, args=(
           start,
           end,
       ))
 
       jobs.append(process)
 
-    # Start the processes (i.e. calculate the random number lists)
     for j in jobs:
       j.start()
 
-    # Ensure all of the processes have finished
     for j in jobs:
       j.join()
 

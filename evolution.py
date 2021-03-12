@@ -8,12 +8,12 @@ class Evolution:
 
   def __init__(self, numberOfChildren=5):
     self.numberOfChildren = numberOfChildren
-    self.nnLayers = [2, 4, 3, 2, 3]
-    self.numberBestOfChildren = 4
-    self.mutateRate = 0.15
+    self.nnLayers = [2, 3, 4, 3, 2]
+    self.numberBestOfChildren = 2
+    self.mutateRate = 0.01
     self.mutateBestChildrenRate = 0.001
 
-    self.bestScore = 0
+    self.bestScore = -100000
 
   def init(self):
     self.prevMaxIndex = 0
@@ -21,7 +21,7 @@ class Evolution:
     self.population = []
 
     for i in range(self.numberOfChildren):
-      delta = 0.5
+      delta = 1.0
 
       W0 = []
       for i in range(self.nnLayers[0]):
@@ -45,16 +45,17 @@ class Evolution:
           w.append(random.random() * delta)
         W2.append(w)
 
-      # W3 = []
-      # for i in range(self.nnLayers[3]):
-      # w = []
-      # for j in range(self.nnLayers[4]):
-      # w.append(random.random() * delta)
+      W3 = []
+      for i in range(self.nnLayers[3]):
+        w = []
 
-      # W3.append(w)
+        for j in range(self.nnLayers[4]):
+          w.append(random.random() * delta)
 
-      # weights = [W0, W1, W2, W3]
-      weights = [W0, W1, W2]
+        W3.append(w)
+
+      weights = [W0, W1, W2, W3]
+      # weights = [W0, W1, W2]
 
       child = AI(weights, self.nnLayers)
 

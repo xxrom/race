@@ -6,7 +6,7 @@ Rect = pg.Rect
 class Car:
   TURN_SPEED = 40
 
-  def __init__(self, isDrawable, screen, carSize, color):
+  def __init__(self, isDrawable, screen, screenWidth, carSize, color):
     self.screen = screen
     self.color = color
     self.isDrawable = False
@@ -14,6 +14,7 @@ class Car:
     self.HEIGHT = carSize
     self.WIDTH = carSize
     self.TURN_SPEED = Car.TURN_SPEED
+    self.SCREEN_WIDTH = screenWidth
 
     self.carSurf = pg.Surface((self.WIDTH, self.HEIGHT), pg.SRCALPHA)
 
@@ -21,11 +22,11 @@ class Car:
     self.tick()
 
   def reset(self):
-    self.x = ((self.screen.get_width() / 2) // self.WIDTH) * self.WIDTH
-    self.y = self.screen.get_height() - self.HEIGHT
+    self.x = ((self.SCREEN_WIDTH / 2) // self.WIDTH) * self.WIDTH
+    self.y = self.SCREEN_WIDTH - self.HEIGHT
 
   def right(self):
-    if self.x <= self.screen.get_width() - self.WIDTH - self.TURN_SPEED:
+    if self.x <= self.SCREEN_WIDTH - self.WIDTH - self.TURN_SPEED:
       self.x += self.TURN_SPEED
 
   def left(self):

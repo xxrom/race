@@ -4,7 +4,7 @@ import random
 
 import numpy as np
 
-CPUS = 6
+CPUS = 12
 torch.set_num_threads(CPUS * 4)
 torch.set_num_interop_threads(CPUS)
 
@@ -23,7 +23,7 @@ class AI(nn.Module):
     self.hiddenSize0 = layers[1]
     self.hiddenSize1 = layers[2]
     self.hiddenSize2 = layers[3]
-    # self.outputSize = layers[4]
+    self.outputSize = layers[4]
 
     # weights
     self.setWeights(weights)
@@ -43,13 +43,13 @@ class AI(nn.Module):
     self.z5 = self.z4 @ self.W2
     self.z6 = self.sigmoid(self.z5)
 
-    return self.z6
+    # return self.z6
 
-    # self.z7 = torch.matmul(self.z6, self.W3)
+    self.z7 = self.z6 @ self.W3
     # final activation function
-    # o = self.sigmoid(self.z7)
+    o = self.sigmoid(self.z7)
 
-    # return o
+    return o
 
   def sigmoid(self, s):
     return 1 / (1 + torch.exp(-s))
@@ -93,7 +93,7 @@ class AI(nn.Module):
     self.W0 = torch.tensor(([self.weights[0]]), dtype=torch.float)
     self.W1 = torch.tensor(([self.weights[1]]), dtype=torch.float)
     self.W2 = torch.tensor(([self.weights[2]]), dtype=torch.float)
-    # self.W3 = torch.tensor(([self.weights[3]]), dtype=torch.float)
+    self.W3 = torch.tensor(([self.weights[3]]), dtype=torch.float)
 
   def setWeightsByIndexes(self, value, i, j, k):
     self.weights[i][j][k] = value
